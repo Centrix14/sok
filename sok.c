@@ -1,11 +1,15 @@
 #include <gtk/gtk.h> 
+
 #define ROW_LEN1 10
 #define ROW_LEN2 9
 #define ROW_LEN3 7
 #define KB_LEN ROW_LEN1+ROW_LEN2+ROW_LEN3
 
+char buffer[256];
+
 void kb_init(GtkWidget *keys[], int len);
 void en_init(GtkWidget *keys[], int len);
+void kb_input(GtkWidget *bttn, gpointer label);
 
 int main(int argc, char *argv[]) {
 	GtkWidget *window;
@@ -31,6 +35,9 @@ int main(int argc, char *argv[]) {
 	row2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	row3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
+	text = gtk_label_new("Type");
+	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
+
 	for (; i < ROW_LEN1; i++) {
 		gtk_box_pack_start(GTK_BOX(row1), keyboard[i+j], TRUE, TRUE, 5);
 	}
@@ -42,9 +49,9 @@ int main(int argc, char *argv[]) {
 	for (i = 0; i < ROW_LEN3; i++) {
 		gtk_box_pack_start(GTK_BOX(row3), keyboard[i+j], TRUE, TRUE, 5);
 	}
-
-	text = gtk_label_new("Type");
-	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
+	for (int i = 0; i < KB_LEN; i++) {
+		g_signal_connect(G_OBJECT(keyboard[i]), "clicked", G_CALLBACK(kb_input), text);
+	}
 
 	gtk_box_pack_start(GTK_BOX(kb_bar), text, TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(kb_bar), row1, TRUE, TRUE, 5);
@@ -73,4 +80,13 @@ void en_init(GtkWidget *keys[], int len) {
 		bttn_letter[0] = letter+i;
 		gtk_button_set_label(GTK_BUTTON(keys[i]), bttn_letter);
 	}
+}
+
+void kb_input(GtkWidget *bttn, gpointer label) {
+	static int i = 0;
+	char bttn_text[256] = "";
+
+	sprintf(bttn_text, "%s", gtk_button_get_label(GTK_BUTTON(bttn)));
+	buffer[i++] = bttn_text[0];
+	gtk_label_set_text(GTK_LABEL(label), buffer);
 }
