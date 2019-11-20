@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <ctype.h>
 #include <gtk/gtk.h> 
 
 #define ROW_LEN1 10
@@ -6,27 +8,33 @@
 #define KB_LEN ROW_LEN1+ROW_LEN2+ROW_LEN3
 
 char buffer[256];
+int pos = 0;
 
 void kb_init(GtkWidget *keys[], int len);
 void en_init(GtkWidget *keys[], int len);
 void kb_input(GtkWidget *bttn, gpointer label);
+void caps_lk_click(GtkWidget *bttn, GtkWidget *keyboard[]);
+void tab_click(GtkWidget *bttn, gpointer label);
+void enter_click(GtkWidget *bttn, gpointer label);
+void space_click(GtkWidget *bttn, gpointer label);
 
 int main(int argc, char *argv[]) {
 	GtkWidget *window;
 	GtkWidget *keyboard[KB_LEN];
 	GtkWidget *kb_bar, *row1, *row2, *row3;
-	GtkWidget *text;
+	GtkWidget *text, *caps_lk, *tab, *enter, *space;
 	int i = 0, j = 0;
 
 	gtk_init(&argc, &argv);
 
+	/* window block */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "sok");
 	gtk_window_set_default_size(GTK_WINDOW(window), 200, 60);
 
-	// При закрытии окна программа завершается
 	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
+	/* keyboard block */
 	kb_init(keyboard, KB_LEN);
 	en_init(keyboard, KB_LEN);
 
@@ -38,6 +46,21 @@ int main(int argc, char *argv[]) {
 	text = gtk_label_new("Type");
 	gtk_label_set_selectable(GTK_LABEL(text), TRUE);
 
+	for (int i = 0; i < KB_LEN; i++) {
+		g_signal_connect(G_OBJECT(keyboard[i]), "clicked", G_CALLBACK(kb_input), text);
+	}
+
+	/* tab block */
+	tab = gtk_button_new_with_label("tab");
+	g_signal_connect(G_OBJECT(tab), "clicked", G_CALLBACK(tab_click), text);
+	gtk_box_pack_start(GTK_BOX(row1), tab, TRUE, TRUE, 5);
+
+	/* caps_lk block */
+	caps_lk = gtk_button_new_with_label("caps_lk");
+	g_signal_connect(G_OBJECT(caps_lk), "clicked", G_CALLBACK(caps_lk_click), keyboard);
+	gtk_box_pack_start(GTK_BOX(row2), caps_lk, TRUE, TRUE, 5);
+
+	/* packing the keyboard */
 	for (; i < ROW_LEN1; i++) {
 		gtk_box_pack_start(GTK_BOX(row1), keyboard[i+j], TRUE, TRUE, 5);
 	}
@@ -49,14 +72,22 @@ int main(int argc, char *argv[]) {
 	for (i = 0; i < ROW_LEN3; i++) {
 		gtk_box_pack_start(GTK_BOX(row3), keyboard[i+j], TRUE, TRUE, 5);
 	}
-	for (int i = 0; i < KB_LEN; i++) {
-		g_signal_connect(G_OBJECT(keyboard[i]), "clicked", G_CALLBACK(kb_input), text);
-	}
 
+	/* enter block */
+	enter = gtk_button_new_with_label("enter");
+	g_signal_connect(G_OBJECT(enter), "clicked", G_CALLBACK(enter_click), text);
+	gtk_box_pack_start(GTK_BOX(row3), enter, TRUE, FALSE, 5);
+
+	/* packaging the kb_bar */
 	gtk_box_pack_start(GTK_BOX(kb_bar), text, TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(kb_bar), row1, TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(kb_bar), row2, TRUE, TRUE, 5);
 	gtk_box_pack_start(GTK_BOX(kb_bar), row3, TRUE, TRUE, 5);
+
+	/* space block */
+	space = gtk_button_new_with_label("Space");
+	g_signal_connect(G_OBJECT(space), "clicked", G_CALLBACK(space_click), text);
+	gtk_box_pack_start(GTK_BOX(kb_bar), space, TRUE, TRUE, 5);
 
 	gtk_container_add(GTK_CONTAINER(window), kb_bar);
 	gtk_widget_show_all(window);
@@ -73,20 +104,57 @@ void kb_init(GtkWidget *keys[], int len) {
 
 void en_init(GtkWidget *keys[], int len) {
 	char *bttn_letter;
-	char letter = 'a';
+	char layout[26] = "qwertyuiopasdfghjklzxcvbnm";
 	static int i = 0;
 
 	for (; i < len; i++) {
-		bttn_letter[0] = letter+i;
+		bttn_letter[0] = layout[i];
 		gtk_button_set_label(GTK_BUTTON(keys[i]), bttn_letter);
 	}
 }
 
 void kb_input(GtkWidget *bttn, gpointer label) {
-	static int i = 0;
 	char bttn_text[256] = "";
 
 	sprintf(bttn_text, "%s", gtk_button_get_label(GTK_BUTTON(bttn)));
-	buffer[i++] = bttn_text[0];
+	buffer[pos++] = bttn_text[0];
+	gtk_label_set_text(GTK_LABEL(label), buffer);
+}
+
+void kb_swap(GtkWidget *keyboard[], int len, int type) { 
+	char key[2];
+	char new[2];
+
+	for (int i = 0; i < len; i++) {
+		sprintf(key, "%s", (char*)gtk_button_get_label(GTK_BUTTON(keyboard[i])));
+
+		if (type == 1)
+			sprintf(new, "%c", toupper(key[0]));
+		else
+			sprintf(new, "%c", tolower(key[0]));
+
+		gtk_button_set_label(GTK_BUTTON(keyboard[i]), new);
+	}
+}
+
+void caps_lk_click(GtkWidget *bttn, GtkWidget *keyboard[]) {
+	static int state = 0;
+
+	state = !state;
+	kb_swap(keyboard, 26, state);
+}
+
+void tab_click(GtkWidget *bttn, gpointer label) {
+	buffer[pos++] = '	';
+	gtk_label_set_text(GTK_LABEL(label), buffer);
+}
+
+void enter_click(GtkWidget *bttn, gpointer label) {
+	buffer[pos++] = '\n';
+	gtk_label_set_text(GTK_LABEL(label), buffer);
+}
+
+void space_click(GtkWidget *bttn, gpointer label) {
+	buffer[pos++] = ' ';
 	gtk_label_set_text(GTK_LABEL(label), buffer);
 }
