@@ -1,7 +1,7 @@
 /*
 * sok -- simple on-screen keyboard
-* v1.0
-* 21.11.2019
+* v1.1
+* 22.11.2019
 * by Centrix
 */
 
@@ -187,11 +187,28 @@ void space_click(GtkWidget *bttn, gpointer label) {
 }
 
 void ac_click(GtkWidget *bttn, gpointer keyboard[]) {
-	char new_chars[26] = "1234567890.,!?+-*/=\"\';:@#%";
+	char new_layout1[] = "1234567890.,!?+-*/=\"\';:@#%";
+	char new_layout2[] = "1234567890~`^&(){}[]<>|\\$%";
+	char new_layout3[] = "qwertyuiopasdfghjklzxcvbnm";
+	char *layout;
 	char bttn_char[2];
+	static int state = 0;
+
+	if ( !state ) {
+		layout = new_layout1;
+		state = 1;
+	}
+	else if ( state == 1 ) {
+		layout = new_layout2;
+		state = 2;
+	}
+	else {
+		layout = new_layout3;
+		state = 0;
+	}
 
 	for (int i = 0; i < 26; i++) {
-		bttn_char[0] = new_chars[i];
+		bttn_char[0] = layout[i];
 		gtk_button_set_label(GTK_BUTTON(keyboard[i]), bttn_char);
 	}
 }
